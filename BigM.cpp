@@ -55,7 +55,7 @@ void printTable(vector<vector<double> > A,vector<int> hor, vector<int> ver)
 	cout<<setw(14)<<'z';
       else
   	if(ver[i]<0)
-	  cout<<setw(14)<<'x'<<m-ver[i]-1;
+	  cout<<setw(14)<<'x'<<n-ver[i]-1;
   	else
 	  cout<<setw(14)<<'x'<<ver[i];
       for(int j=0;j<n;j++)
@@ -67,7 +67,7 @@ void printTable(vector<vector<double> > A,vector<int> hor, vector<int> ver)
 	      else if(hor[j]==0)
 		cout<<'\t';
 	      else if(hor[j]<0)
-		cout<<setw(14)<<"x"<<(m-hor[j]-1);
+		cout<<setw(14)<<"x"<<(n-hor[j]-1);
 	      else
 		cout<<setw(14)<<"x"<<hor[j];
 	    }
@@ -80,7 +80,7 @@ void printTable(vector<vector<double> > A,vector<int> hor, vector<int> ver)
       
     }
 }
-void simplex(vector<vector<double> > A,vector<int> hor, vector<int> ver,int nvar, char choice,vector<char>sign,int last=0)
+void simplex(vector<vector<double> > A,vector<int> hor, vector<int> ver,int nvar, vector<double> Z,char choice,vector<char>sign,int last=0)
 {
 
   int m=A.size(),n=A[0].size();
@@ -100,15 +100,16 @@ void simplex(vector<vector<double> > A,vector<int> hor, vector<int> ver,int nvar
   	}
     }
 
-  if(flag==-1 && last ==0)
+  if( last ==1)
     {
       cout<<"\n--------------------------------------------------------------------------\nInfinite Solutions exist\n--------------------------------------------------------------------------\n ";
+      return;
     
     }
 
   if(flag==0 || flag==-1)
     {
-     
+    
       vector<double> x(n-1),z(m-1);
       for(int i=0;i<n-1;i++)
 	if(hor[i] < 0)
@@ -132,18 +133,28 @@ void simplex(vector<vector<double> > A,vector<int> hor, vector<int> ver,int nvar
       cout<<"  X =";
       vector<double> xOr;
   	for(int i=0;i<nvar;i++)
-	  xOr.push_back(x[i]);
-      printvec(xOr);
+	  {
+	    xOr.push_back(x[i]);
+	    if(x[i]==0)
+	      flag=-1;
+	  }
+	    printvec(xOr);
        cout<<"\nSlack and Artificial variables = ";
        printvec(z);
       cout<<endl;
-      if(choice=='+')
-      cout<<"Max="<<A[m-1][n-1]<<endl;
-	else
-	   cout<<"Min="<<A[m-1][n-1]<<endl;
- 	 
-	return;
- 	 
+      double sum=0;
+      for(int i=0;i<nvar;i++)
+    	sum+=xOr[i]*Z[i];
+ 
+  	if(choice=='-')
+      cout<<"MINIMUM = "<<-sum<<endl;
+  	else
+    cout<<"MAXIMUM = "<<-sum<<endl;
+
+	if(flag!=-1 || last==1)
+	 return;
+	//	char ch;
+	//	cin>>ch;	 
     }
  
  
@@ -190,15 +201,18 @@ void simplex(vector<vector<double> > A,vector<int> hor, vector<int> ver,int nvar
 	  res[i][j]= (A[i][j]*Mn -A[minRatioPos][j]*A[i][minNegPos])/Mn;
       }
 
-  // char ch;
-  //cin>>ch;
+ 
   if(flag!=-1)
     printTable(res,hor,ver);
+ 
   if(flag==-1)
-    simplex(res,hor,ver,nvar,choice,sign,1);
+    simplex(res,hor,ver,nvar,Z,choice,sign,1);
   else
-    simplex(res,hor,ver,nvar,choice,sign);
+    simplex(res,hor,ver,nvar,Z,choice,sign);
 }
+
+
+
 int main()
 {
   int n,m,r,maxOrMin;
@@ -247,9 +261,9 @@ int main()
   	if(choice=='+')
     {
   	if(i==n)
-    z.push_back(temp);
+	  z.push_back(temp);
   	else
-    z.push_back(-temp);
+	  z.push_back(-temp);
     }
   	else
     {
@@ -260,29 +274,38 @@ int main()
     }
 	}
   int nvar = n;
-  table.push_back(z);
+ 
+
   for(int i=0;i<m;i++)
-	{
- 	if(sign[i]=='>')
-    {
-      for(int j=0;j<n+1;j++)
-    	{
-      	table[m][j]=table[m][j]-table[i][j]*M;
-      	MTable[j]-=table[i][j];
-    	}
-   	table[m].insert(table[m].end()-1,M);
-   	MTable.insert(MTable.end()-1,1);
+       
+    if(sign[i]=='>')
+      {
+  
    	hor.push_back(hor.size()+1);
    	n++;
-      for(int j=0;j<m;j++)
-    	if(i==j)
-      	table[j].insert(table[j].end()-1,-1);
-    	else
-       	table[j].insert(table[j].end()-1,0);
-    }
-
+	for(int j=0;j<m;j++)
+	  if(i==j)
+	    table[j].insert(table[j].end()-1,-1);
+	  else
+	    table[j].insert(table[j].end()-1,0);
+      }
+  vector<double> tmp(n+1);
+  table.push_back(tmp);
+  //cout<<"n="<<n<<endl;
+  for(int j=0;j<n;j++)
+    {
+      table[m][j]=0;
+      for(int i=0;i<m;i++)
+	{
+	  if(sign[i]=='>')
+	    table[m][j]-= M*table[i][j];
 	}
+      table[m][j]-=z[j];
+    }
+  table[m][n]=z[nvar];
+printvector(table);
+
 
   printTable(table,hor,ver);
-  simplex(table,hor,ver,nvar,choice,sign);
+  simplex(table,hor,ver,nvar,z,choice,sign);
 }
